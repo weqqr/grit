@@ -1,0 +1,15 @@
+syntax = 'proto3';
+
+package grit;
+
+message EchoRequest {
+  string content = 1;
+}
+
+message EchoResponse {
+  string content = 1;
+}
+
+service Grit {
+  rpc Echo(EchoRequest) returns (EchoResponse);
+}
