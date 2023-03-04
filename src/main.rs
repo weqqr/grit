@@ -1,33 +1,31 @@
+#![forbid(unsafe_code)]
+
+mod api;
+mod core;
+
 use anyhow::Result;
 use tonic::{Request, Response, Status};
 use tonic::transport::Server;
-use crate::pb::{EchoRequest, EchoResponse};
+use crate::core::Library;
 
-pub mod pb {
-    tonic::include_proto!("grit");
-}
-
-pub struct Service {}
-
-#[tonic::async_trait]
-impl pb::grit_server::Grit for Service {
-    async fn echo(&self, request: Request<EchoRequest>) -> Result<Response<EchoResponse>, Status> {
-        let response = EchoResponse {
-            content: request.into_inner().content,
-        };
-
-        Ok(Response::new(response))
-    }
+#[derive(Debug, serde::Deserialize)]
+struct Config {
+    library_path: String,
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let addr = "[::]:4444".parse()?;
-    let service = Service{};
+
+    let config = std::fs::read_to_string("grit.toml").unwrap();
+    let config: Config = toml::from_str(&config).unwrap();
+
+    let library = Library::new(config.library_path);
 
     Server::builder()
-        .add_service(pb::grit_server::GritServer::new(service))
+        .add_service(api::Library::new(library).server())
         .serve(addr)
         .await?;
+
     Ok(())
 }
