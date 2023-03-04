@@ -1,7 +1,7 @@
-use std::sync::{Arc, RwLock};
-use tonic::{Request, Response, Status};
 use crate::api::pb::*;
 use crate::core;
+use std::sync::{Arc, RwLock};
+use tonic::{Request, Response};
 
 pub struct Library {
     library: Arc<RwLock<core::Library>>,
@@ -10,7 +10,7 @@ pub struct Library {
 impl Library {
     pub fn new(library: core::Library) -> Self {
         Self {
-            library: Arc::new(RwLock::new(library))
+            library: Arc::new(RwLock::new(library)),
         }
     }
 
@@ -31,10 +31,11 @@ impl library_server::Library for Library {
         }))
     }
 
-    async fn list_artists(&self, request: Request<ListArtistsRequest>) -> tonic::Result<Response<ListArtistsResponse>> {
+    async fn list_artists(
+        &self,
+        request: Request<ListArtistsRequest>,
+    ) -> tonic::Result<Response<ListArtistsResponse>> {
         let artists = self.library.read().unwrap().list_artists();
-        Ok(Response::new(ListArtistsResponse {
-            artists,
-        }))
+        Ok(Response::new(ListArtistsResponse { artists }))
     }
 }
