@@ -2,14 +2,6 @@ syntax = 'proto3';
 
 package grit;
 
-message EchoRequest {
-  string content = 1;
-}
-
-message EchoResponse {
-  string content = 1;
-}
-
 message ListArtistsRequest {
   string library_id = 1;
 }
@@ -19,6 +11,5 @@ message ListArtistsResponse {
 }
 
 service Library {
-  rpc Echo(EchoRequest) returns (EchoResponse);
   rpc ListArtists(ListArtistsRequest) returns (ListArtistsResponse);
 }
