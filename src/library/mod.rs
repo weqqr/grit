@@ -1,13 +1,13 @@
 use anyhow::Result;
-use tokio::sync::RwLock;
+use tracing::{instrument, error, info};
 use std::collections::HashSet;
 use std::io::BufReader;
 use std::path::{PathBuf, Path};
 use std::sync::Arc;
 
-use tracing::{error, info, instrument};
+use tokio::sync::RwLock;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Library {
     path: PathBuf,
 
@@ -15,9 +15,9 @@ pub struct Library {
 }
 
 impl Library {
-    pub fn new<P: Into<PathBuf>>(p: P) -> Self {
+    pub fn new<P: Into<PathBuf>>(path: P) -> Self {
         Self {
-            path: p.into(),
+            path: path.into(),
             artists: Arc::new(RwLock::new(HashSet::new())),
         }
     }

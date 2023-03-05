@@ -1,29 +1,31 @@
 #![forbid(unsafe_code)]
 
 mod api;
-mod core;
+mod handler;
+mod db;
+mod library;
 
-use crate::core::Library;
+use crate::library::Library;
+use crate::db::Database;
 use anyhow::Result;
 use tonic::transport::Server;
 use tonic_web::GrpcWebLayer;
 use tracing::info;
-use tracing_subscriber::fmt::format::FmtSpan;
 
 #[derive(Debug, serde::Deserialize)]
 struct Config {
     listen_address: String,
     library_path: String,
+    db_conn: String,
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let config = std::fs::read_to_string("grit.toml").unwrap();
-    let config: Config = toml::from_str(&config).unwrap();
+    let config = std::fs::read_to_string("grit.toml")?;
+    let config: Config = toml::from_str(&config)?;
 
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::INFO)
-        .with_span_events(FmtSpan::ENTER)
         .init();
 
     let listen_address = config.listen_address.parse()?;
@@ -37,10 +39,14 @@ async fn main() -> Result<()> {
         l.index().await;
     });
 
+    let db = Database::connect(&config.db_conn).await?;
+
+    let library_handler = handler::Library::new(library);
+
     Server::builder()
         .accept_http1(true)
         .layer(GrpcWebLayer::new())
-        .add_service(api::Library::new(library).server())
+        .add_service(api::Library::new(library_handler).server())
         .serve(listen_address)
         .await?;
 

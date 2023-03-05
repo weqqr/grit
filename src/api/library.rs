@@ -1,13 +1,13 @@
 use crate::api::pb::*;
-use crate::core;
+use crate::handler;
 use tonic::{Request, Response};
 
 pub struct Library {
-    library: core::Library,
+    library: handler::Library,
 }
 
 impl Library {
-    pub fn new(library: core::Library) -> Self {
+    pub fn new(library: handler::Library) -> Self {
         Self {
             library,
         }
