@@ -1,26 +1,28 @@
 use anyhow::Result;
+use tokio::sync::RwLock;
 use std::collections::HashSet;
 use std::io::BufReader;
 use std::path::{PathBuf, Path};
+use std::sync::Arc;
 
 use tracing::{error, info, instrument};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Library {
     path: PathBuf,
 
-    artists: HashSet<String>,
+    artists: Arc<RwLock<HashSet<String>>>,
 }
 
 impl Library {
     pub fn new<P: Into<PathBuf>>(p: P) -> Self {
         Self {
             path: p.into(),
-            artists: HashSet::new(),
+            artists: Arc::new(RwLock::new(HashSet::new())),
         }
     }
 
-    fn add_file(&mut self, path: &Path) -> Result<()> {
+    async fn add_file(&self, path: &Path) -> Result<()> {
         if let Some(ext) = path.extension() {
             if ext != "flac" {
                 return Ok(())
@@ -33,13 +35,13 @@ impl Library {
 
         let artist = flac.get_tag("ARTIST").next().unwrap_or("unknown");
 
-        self.artists.insert(artist.to_owned());
+        self.artists.write().await.insert(artist.to_owned());
 
         Ok(())
     }
 
     #[instrument(skip(self))]
-    pub fn index(&mut self) {
+    pub async fn index(&self) {
         let mut file_count = 0;
 
         for entry in walkdir::WalkDir::new(&self.path) {
@@ -57,16 +59,18 @@ impl Library {
 
             file_count += 1;
 
-            if let Err(e) = self.add_file(entry.path()) {
+            if let Err(e) = self.add_file(entry.path()).await {
                 error!(?e, file_name=?entry.file_name());
             }
         }
 
-        info!(file_count, artists=self.artists.len());
+        let artists_count = self.artists.read().await.len();
+
+        info!(file_count, artists_count);
     }
 
     #[instrument(skip(self))]
     pub async fn list_artists(&self) -> Vec<String> {
-        self.artists.iter().cloned().collect()
+        self.artists.read().await.iter().cloned().collect()
     }
 }

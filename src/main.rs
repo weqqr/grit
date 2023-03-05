@@ -29,8 +29,12 @@ async fn main() -> Result<()> {
 
     info!(?listen_address);
 
-    let mut library = Library::new(config.library_path);
-    library.index();
+    let library = Library::new(config.library_path);
+
+    let l = library.clone();
+    tokio::spawn(async move {
+        l.index().await;
+    });
 
     Server::builder()
         .add_service(api::Library::new(library).server())
