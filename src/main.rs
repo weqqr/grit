@@ -6,6 +6,7 @@ mod core;
 use crate::core::Library;
 use anyhow::Result;
 use tonic::transport::Server;
+use tonic_web::GrpcWebLayer;
 use tracing::info;
 use tracing_subscriber::fmt::format::FmtSpan;
 
@@ -37,6 +38,8 @@ async fn main() -> Result<()> {
     });
 
     Server::builder()
+        .accept_http1(true)
+        .layer(GrpcWebLayer::new())
         .add_service(api::Library::new(library).server())
         .serve(listen_address)
         .await?;
